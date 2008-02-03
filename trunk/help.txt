@@ -1,0 +1,137 @@
+NOTE: You need to have a copy of psapi.dll installed (MS platform SDK or
+      reskit) to be able to run this! You'll need psapi.h & psapi.lib 
+      (MS Platform SDK) to be able to build it from source.
+
+
+Usage:
+======
+
+ltrace2.exe -a
+
+ltrace2.exe [-o output_file] [-f decode.txt] [-d] [-i] [-n] [-l] 
+	    [-v] [-D trace_spec] -p pid
+
+ltrace2.exe [-o output_file] [-f decode.txt] [-d] [-i] [-n] [-l] 
+	    [-v] [-D trace_spec] command_line
+
+
+Description:
+============
+
+The first invocation dumps a list of process IDs on screen for all
+processes currently running. If possible (ie if the process is not
+running as SYSTEM), the load address, memory size and entry point
+address are listed (in that order).
+
+The second invocation traces a pre-existing process.
+
+The third invocation spawns a separate process, executes the given command
+line, and traces it.
+
+Options:
+========
+
+-o filename			Dumps output to the specified file
+				instead of stdout.
+
+-f decode.txt			Provides the full path to the decode.txt
+				file (required to decode arguments to
+				library calls). By default, looks in
+				current directory only.
+
+-d				Switches on descent mode. Library calls
+				made by other library calls are traced
+				(ie this flag causes recursive library
+				call tracing). Be warned, this will
+				slow things down a LOT, and produce
+				masses of output.
+
+-i				Prints the address of the code where the
+				reported library call was made.
+
+-n				Attempts to trace into ntdll.dll. This
+				can usually cause problems if the program
+				does deferred or asynchronous procedure
+				calls. Only use this flag if you really,
+				REALLY need to look inside ntdll.dll.
+
+-l				Prints the full pathname of each library
+				in the output. Normally, just prints the
+				library name itself (eg blah.dll) without
+				all the path info.
+
+-v				Turns on debug output. Pretty useless.
+
+-D debug_spec			Rather than hooking every function in
+				a library, you can just choose to hook
+				specific functions (to keep the trace
+				speed up, and the output down). The
+				debug_spec is a tuple of the following
+				form:
+
+					calling_exe:called_lib:function
+
+				The calling_exe is the program or dll
+				that instigates the library call we wanna
+				trace (ie so you can trace only certain
+				library calls coming from a certain
+				exe). If calling_exe is left blank,
+				any calls to the given library/function
+				pair are logged, regardless of whichever
+				library/executable makes them.
+
+				The called_lib is the dll containing the
+				function we are interested in tracing.
+				Can not be blank.
+
+				The function is the function we which to
+				log all invocations of. If left blank,
+				indicates that all exported functions in
+				the specified called_lib are to be logged.
+
+				Any number of debug_specs can be specified,
+				each must be prefixed by a '-D'.
+
+FILES:
+======
+
+The decode.txt file lists the format and number of arguments that each
+library call takes. If a function is not listed here, ltrace assumes that
+it takes no arguments (ie it will not decode any of the call stack).
+
+The format of the decode.txt file is pretty intuitive: it is comprised of
+individual sections (one per dll), and lists any functions (one per line)
+that are exported from said dll.
+
+Each argument to a function can be IN, OUT, or INOUT (which means it
+will be decoded when the function is called, when the cal returns, or
+both). Defined types are currently limited to:
+
+	int		(integer, decoded in decimal)
+	uint		(unsigned integer, decoded in decimal)
+	flags		(unsigned long, decoded in hexidecimal)
+	ptr		(void*, decoded in hexidecimal)
+	dword_ptr	(DWORD*, pointer value printed on invocation,
+			 dereferenced value printed on call return)
+	pptr		(void**, decoded as above)
+	string		(string pointer, printed as ascii string, binary
+			 chars escaped)
+	ustring		(unicode string, decoded as above)
+	buffer		(data buffer, decoded into hexidecimal. following
+			 arg is always assumed to be the buffer size).
+	snmpvarbindlist	(used by SNMP API. decoded fully)
+	snmpop		(")
+	snmpid		(")
+	sockaddr_in	(decoded to ip address)
+	pobject_attributes (used by NtCreateFile())
+
+To create new types, you need to modify types.c and recompile. Sorry.
+Not very userfriendly.
+
+All functions are assumed to return DWORD (ie you can't specify a return
+type). To be fixed sometime.
+
+Errata:
+=======
+All questions & queries to johnbrazel@gmail.com
+

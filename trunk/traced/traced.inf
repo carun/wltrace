@@ -1,0 +1,42 @@
+[Version]
+Signature=$Windows NT$
+Provider=%CompanyName%
+
+[Strings]
+CompanyName="Hate Incorporated"
+ServiceName="traced"
+EventLogRegKey="SYSTEM\CurrentControlSet\Services\EventLog\Application\traced"
+
+[SourceDisksNames]
+1="Ltrace Install Disk",,0
+
+[SourceDisksFiles]
+traced.exe=1,Release
+traced.inf=1
+decode.txt=1,..
+ 
+[InstallFiles]
+traced.exe,,,0x00000002		; COPYFLG_NOSKIP
+traced.inf,,,0x00000001		; COPYFLG_WARN_IF_SKIP
+decode.txt,,,0x00000001		; COPYFLG_WARN_IF_SKIP
+
+[DestinationDirs]
+InstallFiles=11
+
+[InstallLtraceService]
+DisplayName="Ltrace for Windows"
+ServiceType=0x10			; SERVICE_WIN32_OWN_PROCESS
+StartType=0x3				; SERVICE_DEMAND_START
+ErrorControl=0x1			; NORMAL
+ServiceBinary=%11%\traced.exe
+
+[Ltrace_EventLog_AddReg]
+HKLM,%EventLogRegKey%,"EventMessageFile",0x20000,%11%\traced.exe	; REG_EXPAND_SZ
+HKLM,%EventLogRegKey%,"TypesSupported",0x10001,7			; REG_DWORD, EVENTLOG_ERROR_TYPE|EVENTLOG_WARNING_TYPE|EVENTLOG_INFORMATION_TYPE
+
+[DefaultInstall.Services]
+AddService=%ServiceName%,0x0,InstallLtraceService
+
+[DefaultInstall]
+CopyFiles=InstallFiles, InstallInfFiles
+AddReg=Ltrace_EventLog_AddReg

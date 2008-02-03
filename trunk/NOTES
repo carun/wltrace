@@ -1,0 +1,60 @@
+Notes on the ptrace module
+==========================
+
+The function SpawnTraceProcess() takes 2 arguments: 
+
+	-	the command line of a program to execute and trace
+	-	the address of a callback function, which gets called
+		each time a library call is entered and exitted.
+
+The callback function is defined:
+
+	void Callback(	int direction,	
+			char *dll_name,
+			char *function_name,
+			HANDLE process,
+			HANDLE thread,
+			LPCONTEXT context);
+
+Where:
+
+	direction	zero if entering (ie about to call) the named library
+			call, or non-zero if returning from a library call.
+
+	dll_name	the _full_ pathname of the DLL containing the function
+			being entered/left.
+
+	function_name	the decorated (if C++) function name being entered or
+			left.
+
+	process		Handle to the process being debugged. Suitable for
+			passing to Read/WriteProcessMemory().
+
+	thread		Handle to the thread calling/leaving the named library
+			function.
+
+	context		The current CPU context of the named thread. Only has
+			control and arithmetic registers set. If direction is
+			non-zero, the EAX register of context contains the
+			return value. Any registers modified in context by the
+			callback will be set in the named thread upon return
+			(SpawnTraceProcess() performs a SetThreadContext() once
+			the callback function returns), with the exception of
+			the Eip (instruction pointer).
+
+Notes: 	Example of a callback function is the print_line() function in 
+	ltrace.c.
+
+	The descend boolean can be set to cause internal win32 calls made
+	(by other win32 calls) to be traced as well. It should be noted, that
+	in this case, the callback may be called with direction == 0 several
+	times in a row, followed by several successive calls with 
+	direction == 1.
+
+Bugs:	UnloadDll events not handled.
+		Formatting is dreaful.
+		Partial process memory reads/writes (ERROR_PARTIAL_COPY) not handled properly.
+
+
+
+
